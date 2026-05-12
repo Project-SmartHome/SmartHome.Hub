@@ -1,122 +1,122 @@
-name: Release macOS artifacts
+# name: Release macOS artifacts
 
-on:
-  push:
-    tags:
-      - 'v*'
-  release:
-    types:
-      - published
-  workflow_run:
-    workflows:
-      - Auto Tag Release
-    types:
-      - completed
-  workflow_dispatch:
+# on:
+#   push:
+#     tags:
+#       - 'v*'
+#   release:
+#     types:
+#       - published
+#   workflow_run:
+#     workflows:
+#       - Auto Tag Release
+#     types:
+#       - completed
+#   workflow_dispatch:
 
-permissions:
-  contents: write
+# permissions:
+#   contents: write
 
-jobs:
-  build-macos:
-    runs-on: macos-latest
+# jobs:
+#   build-macos:
+#     runs-on: macos-latest
 
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
+#     steps:
+#       - uses: actions/checkout@v6
+#         with:
+#           fetch-depth: 0
 
-      - name: Read release version
-        id: release_version
-        run: |
-          VERSION=$(jq -r '.currentVersion' .Manifest)
-          if [[ -z "$VERSION" || "$VERSION" == "null" ]]; then
-            echo 'Manifest version is empty'
-            exit 1
-          fi
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+#       - name: Read release version
+#         id: release_version
+#         run: |
+#           VERSION=$(jq -r '.currentVersion' .Manifest)
+#           if [[ -z "$VERSION" || "$VERSION" == "null" ]]; then
+#             echo 'Manifest version is empty'
+#             exit 1
+#           fi
+#           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Validate tagged commit
-        if: github.event_name == 'workflow_run'
-        run: |
-          VERSION=${{ steps.release_version.outputs.version }}
-          if ! git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null 2>&1; then
-            echo "Tag v$VERSION does not exist"
-            exit 0
-          fi
-          TAG_SHA=$(git rev-list -n 1 "v$VERSION")
-          if [[ "$TAG_SHA" != "$GITHUB_SHA" ]]; then
-            echo "Tag v$VERSION is not on current commit; skipping release"
-            exit 0
-          fi
+#       - name: Validate tagged commit
+#         if: github.event_name == 'workflow_run'
+#         run: |
+#           VERSION=${{ steps.release_version.outputs.version }}
+#           if ! git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null 2>&1; then
+#             echo "Tag v$VERSION does not exist"
+#             exit 0
+#           fi
+#           TAG_SHA=$(git rev-list -n 1 "v$VERSION")
+#           if [[ "$TAG_SHA" != "$GITHUB_SHA" ]]; then
+#             echo "Tag v$VERSION is not on current commit; skipping release"
+#             exit 0
+#           fi
 
-      - name: Set up Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: 1.25
+#       - name: Set up Go
+#         uses: actions/setup-go@v4
+#         with:
+#           go-version: 1.25
 
-      - name: Build darwin/amd64 binary
-        run: |
-          mkdir -p dist
-          GOOS=darwin GOARCH=amd64 go build -o dist/smarthome-hub-darwin-amd64 ./hub.go
+#       - name: Build darwin/amd64 binary
+#         run: |
+#           mkdir -p dist
+#           GOOS=darwin GOARCH=amd64 go build -o dist/smarthome-hub-darwin-amd64 ./hub.go
 
-      - name: Build darwin/arm64 binary
-        run: |
-          mkdir -p dist
-          GOOS=darwin GOARCH=arm64 go build -o dist/smarthome-hub-darwin-arm64 ./hub.go
+#       - name: Build darwin/arm64 binary
+#         run: |
+#           mkdir -p dist
+#           GOOS=darwin GOARCH=arm64 go build -o dist/smarthome-hub-darwin-arm64 ./hub.go
 
-      - name: Package artifacts
-        run: |
-          cd dist
-          tar -czf smarthome-hub-darwin-amd64.tar.gz smarthome-hub-darwin-amd64
-          tar -czf smarthome-hub-darwin-arm64.tar.gz smarthome-hub-darwin-arm64
-          zip -j smarthome-hub-darwin-amd64.zip smarthome-hub-darwin-amd64
-          zip -j smarthome-hub-darwin-arm64.zip smarthome-hub-darwin-arm64
+#       - name: Package artifacts
+#         run: |
+#           cd dist
+#           tar -czf smarthome-hub-darwin-amd64.tar.gz smarthome-hub-darwin-amd64
+#           tar -czf smarthome-hub-darwin-arm64.tar.gz smarthome-hub-darwin-arm64
+#           zip -j smarthome-hub-darwin-amd64.zip smarthome-hub-darwin-amd64
+#           zip -j smarthome-hub-darwin-arm64.zip smarthome-hub-darwin-arm64
 
-      - name: Create update manifest
-        env:
-          TAG_NAME: v${{ steps.release_version.outputs.version }}
-          REPO: ${{ github.repository }}
-        run: |
-          VERSION=${TAG_NAME#v}
-          cd dist
-          cat > update-manifest.json <<'EOF'
-            {
-              "version": "${VERSION}",
-              "files": [
-                {
-                  "path": "smarthome-hub-darwin-amd64",
-                  "url": "https://github.com/${REPO}/releases/download/${TAG_NAME}/smarthome-hub-darwin-amd64",
-                  "sha256": "$(shasum -a 256 smarthome-hub-darwin-amd64 | awk '{print $1}')",
-                  "size": $(stat -f%z smarthome-hub-darwin-amd64 2>/dev/null || stat -c%s smarthome-hub-darwin-amd64)
-                },
-                {
-                  "path": "smarthome-hub-darwin-arm64",
-                  "url": "https://github.com/${REPO}/releases/download/${TAG_NAME}/smarthome-hub-darwin-arm64",
-                  "sha256": "$(shasum -a 256 smarthome-hub-darwin-arm64 | awk '{print $1}')",
-                  "size": $(stat -f%z smarthome-hub-darwin-arm64 2>/dev/null || stat -c%s smarthome-hub-darwin-arm64)
-                }
-              ]
-            }
-          EOF
+#       - name: Create update manifest
+#         env:
+#           TAG_NAME: v${{ steps.release_version.outputs.version }}
+#           REPO: ${{ github.repository }}
+#         run: |
+#           VERSION=${TAG_NAME#v}
+#           cd dist
+#           cat > update-manifest.json <<'EOF'
+#             {
+#               "version": "${VERSION}",
+#               "files": [
+#                 {
+#                   "path": "smarthome-hub-darwin-amd64",
+#                   "url": "https://github.com/${REPO}/releases/download/${TAG_NAME}/smarthome-hub-darwin-amd64",
+#                   "sha256": "$(shasum -a 256 smarthome-hub-darwin-amd64 | awk '{print $1}')",
+#                   "size": $(stat -f%z smarthome-hub-darwin-amd64 2>/dev/null || stat -c%s smarthome-hub-darwin-amd64)
+#                 },
+#                 {
+#                   "path": "smarthome-hub-darwin-arm64",
+#                   "url": "https://github.com/${REPO}/releases/download/${TAG_NAME}/smarthome-hub-darwin-arm64",
+#                   "sha256": "$(shasum -a 256 smarthome-hub-darwin-arm64 | awk '{print $1}')",
+#                   "size": $(stat -f%z smarthome-hub-darwin-arm64 2>/dev/null || stat -c%s smarthome-hub-darwin-arm64)
+#                 }
+#               ]
+#             }
+#           EOF
 
-      - name: Publish release assets
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: v${{ steps.release_version.outputs.version }}
-          draft: true
-          files: |
-            dist/smarthome-hub-darwin-amd64
-            dist/smarthome-hub-darwin-arm64
-            dist/smarthome-hub-darwin-amd64.tar.gz
-            dist/smarthome-hub-darwin-arm64.tar.gz
-            dist/smarthome-hub-darwin-amd64.zip
-            dist/smarthome-hub-darwin-arm64.zip
-            dist/update-manifest.json
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#       - name: Publish release assets
+#         uses: softprops/action-gh-release@v1
+#         with:
+#           tag_name: v${{ steps.release_version.outputs.version }}
+#           draft: true
+#           files: |
+#             dist/smarthome-hub-darwin-amd64
+#             dist/smarthome-hub-darwin-arm64
+#             dist/smarthome-hub-darwin-amd64.tar.gz
+#             dist/smarthome-hub-darwin-arm64.tar.gz
+#             dist/smarthome-hub-darwin-amd64.zip
+#             dist/smarthome-hub-darwin-arm64.zip
+#             dist/update-manifest.json
+#         env:
+#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish GitHub release
-        run: gh release edit "v${{ steps.release_version.outputs.version }}" --draft=false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#       - name: Publish GitHub release
+#         run: gh release edit "v${{ steps.release_version.outputs.version }}" --draft=false
+#         env:
+#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
