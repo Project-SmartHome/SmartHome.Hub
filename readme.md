@@ -1,11 +1,3 @@
-go mod tidy
-
-go run .
-
-swag init -g ./hub.go
-
-@Security BearerAuth
-
 ## Library usage
 
 The server can be embedded from another Go program:
