@@ -104,6 +104,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ steps.release_version.outputs.version }}
+          draft: true
           files: |
             dist/smarthome-hub-darwin-amd64
             dist/smarthome-hub-darwin-arm64
@@ -112,5 +113,10 @@ jobs:
             dist/smarthome-hub-darwin-amd64.zip
             dist/smarthome-hub-darwin-arm64.zip
             dist/update-manifest.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish GitHub release
+        run: gh release edit "v${{ steps.release_version.outputs.version }}" --draft=false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
