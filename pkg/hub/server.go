@@ -142,9 +142,13 @@ func NewRouter(db *sql.DB, config Config, checker *updater.Checker) http.Handler
 }
 
 func (s *Server) Run(ctx context.Context) error {
-	if s.UpdateChecker != nil && s.Config.EnableUpdateCheck && !s.Config.DebugMode && strings.EqualFold(s.Config.AppEnv, "production") {
+	if reason := s.updateCheckSkipReason(); reason != "" {
+		logger.Log.Info("update check skipped: %s", reason)
+	} else {
+		logger.Log.Info("checking for updates")
 		go s.checkForUpdates(context.Background())
 	}
+
 	httpServer := &http.Server{
 		Addr:    s.Config.Addr,
 		Handler: s.Router,
@@ -170,6 +174,23 @@ func (s *Server) Run(ctx context.Context) error {
 		}
 		return err
 	}
+}
+
+func (s *Server) updateCheckSkipReason() string {
+	if s.UpdateChecker == nil {
+		return "github owner/repo not configured"
+	}
+	if !s.Config.EnableUpdateCheck {
+		return "disabled"
+	}
+	if s.Config.DebugMode {
+		return "debug mode enabled"
+	}
+	if !strings.EqualFold(s.Config.AppEnv, "production") {
+		return "appEnv is not production"
+	}
+
+	return ""
 }
 
 func (s *Server) checkForUpdates(ctx context.Context) {

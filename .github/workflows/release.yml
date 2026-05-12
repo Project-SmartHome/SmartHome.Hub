@@ -81,7 +81,11 @@ jobs:
               asset="${asset}.exe"
             fi
 
-            GOOS="$goos" GOARCH="$goarch" CGO_ENABLED=0 go build -o "dist/update-assets/${asset}" .
+            version="${{ steps.tag.outputs.new_tag }}"
+            version="${version#v}"
+            GOOS="$goos" GOARCH="$goarch" CGO_ENABLED=0 go build \
+              -ldflags "-s -w -X main.version=${version} -X main.author=madirajupranay" \
+              -o "dist/update-assets/${asset}" .
           done
 
       - name: Create update manifest

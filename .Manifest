@@ -2,7 +2,7 @@
   "updateOwner": "Project-SmartHome",
   "updateRepo": "SmartHome.Hub",
   "enableUpdateCheck": true,
-  "updateAutoApply": false,
+  "updateAutoApply": true,
   "currentVersion": "1.0.0",
   "updateManifestAssetName": "update-manifest.json",
   "updateGitHubToken": "",

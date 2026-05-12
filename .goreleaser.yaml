@@ -4,6 +4,8 @@ project_name: SmartHome.Hub
 
 builds:
   - binary: smarthome-hub
+    ldflags:
+      - -s -w -X main.version={{.Version}} -X main.author=madirajupranay
     goos:
       - linux
       - windows
