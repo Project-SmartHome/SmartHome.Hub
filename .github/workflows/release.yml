@@ -1,122 +1,145 @@
-# name: Release macOS artifacts
+name: Release
 
-# on:
-#   push:
-#     tags:
-#       - 'v*'
-#   release:
-#     types:
-#       - published
-#   workflow_run:
-#     workflows:
-#       - Auto Tag Release
-#     types:
-#       - completed
-#   workflow_dispatch:
+on:
+  push:
+    branches:
+      - main
 
-# permissions:
-#   contents: write
+permissions:
+  contents: write
 
-# jobs:
-#   build-macos:
-#     runs-on: macos-latest
+jobs:
+  release:
+    runs-on: ubuntu-latest
 
-#     steps:
-#       - uses: actions/checkout@v6
-#         with:
-#           fetch-depth: 0
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
-#       - name: Read release version
-#         id: release_version
-#         run: |
-#           VERSION=$(jq -r '.currentVersion' .Manifest)
-#           if [[ -z "$VERSION" || "$VERSION" == "null" ]]; then
-#             echo 'Manifest version is empty'
-#             exit 1
-#           fi
-#           echo "version=$VERSION" >> $GITHUB_OUTPUT
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
 
-#       - name: Validate tagged commit
-#         if: github.event_name == 'workflow_run'
-#         run: |
-#           VERSION=${{ steps.release_version.outputs.version }}
-#           if ! git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null 2>&1; then
-#             echo "Tag v$VERSION does not exist"
-#             exit 0
-#           fi
-#           TAG_SHA=$(git rev-list -n 1 "v$VERSION")
-#           if [[ "$TAG_SHA" != "$GITHUB_SHA" ]]; then
-#             echo "Tag v$VERSION is not on current commit; skipping release"
-#             exit 0
-#           fi
+      # Optional
+      # - name: Run tests
+      #   run: go test ./...
 
-#       - name: Set up Go
-#         uses: actions/setup-go@v4
-#         with:
-#           go-version: 1.25
+      - name: Get latest tag
+        id: tag
+        run: |
+          git fetch --tags
 
-#       - name: Build darwin/amd64 binary
-#         run: |
-#           mkdir -p dist
-#           GOOS=darwin GOARCH=amd64 go build -o dist/smarthome-hub-darwin-amd64 ./hub.go
+          LATEST_TAG=$(git tag --sort=-v:refname | head -n 1)
 
-#       - name: Build darwin/arm64 binary
-#         run: |
-#           mkdir -p dist
-#           GOOS=darwin GOARCH=arm64 go build -o dist/smarthome-hub-darwin-arm64 ./hub.go
+          if [ -z "$LATEST_TAG" ]; then
+            NEW_TAG="v0.0.1"
+          else
+            VERSION=${LATEST_TAG#v}
 
-#       - name: Package artifacts
-#         run: |
-#           cd dist
-#           tar -czf smarthome-hub-darwin-amd64.tar.gz smarthome-hub-darwin-amd64
-#           tar -czf smarthome-hub-darwin-arm64.tar.gz smarthome-hub-darwin-arm64
-#           zip -j smarthome-hub-darwin-amd64.zip smarthome-hub-darwin-amd64
-#           zip -j smarthome-hub-darwin-arm64.zip smarthome-hub-darwin-arm64
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
 
-#       - name: Create update manifest
-#         env:
-#           TAG_NAME: v${{ steps.release_version.outputs.version }}
-#           REPO: ${{ github.repository }}
-#         run: |
-#           VERSION=${TAG_NAME#v}
-#           cd dist
-#           cat > update-manifest.json <<'EOF'
-#             {
-#               "version": "${VERSION}",
-#               "files": [
-#                 {
-#                   "path": "smarthome-hub-darwin-amd64",
-#                   "url": "https://github.com/${REPO}/releases/download/${TAG_NAME}/smarthome-hub-darwin-amd64",
-#                   "sha256": "$(shasum -a 256 smarthome-hub-darwin-amd64 | awk '{print $1}')",
-#                   "size": $(stat -f%z smarthome-hub-darwin-amd64 2>/dev/null || stat -c%s smarthome-hub-darwin-amd64)
-#                 },
-#                 {
-#                   "path": "smarthome-hub-darwin-arm64",
-#                   "url": "https://github.com/${REPO}/releases/download/${TAG_NAME}/smarthome-hub-darwin-arm64",
-#                   "sha256": "$(shasum -a 256 smarthome-hub-darwin-arm64 | awk '{print $1}')",
-#                   "size": $(stat -f%z smarthome-hub-darwin-arm64 2>/dev/null || stat -c%s smarthome-hub-darwin-arm64)
-#                 }
-#               ]
-#             }
-#           EOF
+            PATCH=$((PATCH + 1))
 
-#       - name: Publish release assets
-#         uses: softprops/action-gh-release@v1
-#         with:
-#           tag_name: v${{ steps.release_version.outputs.version }}
-#           draft: true
-#           files: |
-#             dist/smarthome-hub-darwin-amd64
-#             dist/smarthome-hub-darwin-arm64
-#             dist/smarthome-hub-darwin-amd64.tar.gz
-#             dist/smarthome-hub-darwin-arm64.tar.gz
-#             dist/smarthome-hub-darwin-amd64.zip
-#             dist/smarthome-hub-darwin-arm64.zip
-#             dist/update-manifest.json
-#         env:
-#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            NEW_TAG="v$MAJOR.$MINOR.$PATCH"
+          fi
 
-#       - name: Publish GitHub release
-#         run: gh release edit "v${{ steps.release_version.outputs.version }}" --draft=false
-#         env:
-#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          echo "new_tag=$NEW_TAG" >> $GITHUB_OUTPUT
+
+      - name: Create Tag
+        run: |
+          git tag ${{ steps.tag.outputs.new_tag }}
+          git push origin ${{ steps.tag.outputs.new_tag }}
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: "~> v2"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+
+      - name: Build update binaries
+        run: |
+          mkdir -p dist/update-assets
+
+          for target in \
+            linux/amd64 \
+            linux/arm64 \
+            darwin/amd64 \
+            darwin/arm64 \
+            windows/amd64 \
+            windows/arm64
+          do
+            goos="${target%/*}"
+            goarch="${target#*/}"
+            asset="SmartHome.Hub_${goos}_${goarch}"
+
+            if [ "$goos" = "windows" ]; then
+              asset="${asset}.exe"
+            fi
+
+            GOOS="$goos" GOARCH="$goarch" CGO_ENABLED=0 go build -o "dist/update-assets/${asset}" .
+          done
+
+      - name: Create update manifest
+        env:
+          TAG: ${{ steps.tag.outputs.new_tag }}
+          REPO: ${{ github.repository }}
+        run: |
+          VERSION="${TAG#v}"
+          MANIFEST="dist/update-manifest.json"
+
+          printf '{\n  "version": "%s",\n  "files": [\n' "$VERSION" > "$MANIFEST"
+
+          first=true
+          while IFS= read -r artifact; do
+            name="$(basename "$artifact")"
+            sha256="$(sha256sum "$artifact" | awk '{print $1}')"
+            size="$(stat -c%s "$artifact")"
+            target="${name#SmartHome.Hub_}"
+            target="${target%.exe}"
+            goos="${target%_*}"
+            goarch="${target#*_}"
+            path="SmartHome.Hub"
+            mode=493
+
+            if [ "$goos" = "windows" ]; then
+              path="SmartHome.Hub.exe"
+              mode=420
+            fi
+
+            url="https://github.com/${REPO}/releases/download/${TAG}/${name}"
+
+            if [ "$first" = true ]; then
+              first=false
+            else
+              printf ',\n' >> "$MANIFEST"
+            fi
+
+            jq -n \
+              --arg path "$path" \
+              --arg url "$url" \
+              --arg sha256 "$sha256" \
+              --argjson size "$size" \
+              --argjson mode "$mode" \
+              --arg goos "$goos" \
+              --arg goarch "$goarch" \
+              '    {path: $path, url: $url, sha256: $sha256, size: $size, mode: $mode, goos: $goos, goarch: $goarch}' >> "$MANIFEST"
+          done < <(find dist/update-assets -maxdepth 1 -type f | sort)
+
+          if [ "$first" = true ]; then
+            echo "No update binaries found in dist/update-assets"
+            exit 1
+          fi
+
+          printf '\n  ]\n}\n' >> "$MANIFEST"
+          cat "$MANIFEST"
+
+      - name: Upload update assets
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+          TAG: ${{ steps.tag.outputs.new_tag }}
+        run: gh release upload "$TAG" dist/update-assets/* dist/update-manifest.json --clobber

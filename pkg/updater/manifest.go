@@ -18,6 +18,8 @@ type ManifestFile struct {
 	SHA256 string `json:"sha256"`
 	Size   int64  `json:"size,omitempty"`
 	Mode   uint32 `json:"mode,omitempty"`
+	GOOS   string `json:"goos,omitempty"`
+	GOARCH string `json:"goarch,omitempty"`
 }
 
 func DecodeManifest(r io.Reader) (Manifest, error) {

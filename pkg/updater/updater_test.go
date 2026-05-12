@@ -84,6 +84,61 @@ func TestRejectsUnsafePaths(t *testing.T) {
 	}
 }
 
+func TestApplyOnlyCurrentPlatformFiles(t *testing.T) {
+	root := t.TempDir()
+	release := t.TempDir()
+
+	linuxPath := filepath.Join(release, "linux")
+	if err := os.WriteFile(linuxPath, []byte("linux"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	darwinPath := filepath.Join(release, "darwin")
+	if err := os.WriteFile(darwinPath, []byte("darwin"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	manifest := Manifest{
+		Version: "1.0.1",
+		Files: []ManifestFile{
+			{
+				Path:   "SmartHome.Hub",
+				URL:    "file://" + darwinPath,
+				SHA256: sum("darwin"),
+				Size:   6,
+				GOOS:   "darwin",
+				GOARCH: "arm64",
+			},
+			{
+				Path:   "SmartHome.Hub",
+				URL:    "file://" + linuxPath,
+				SHA256: sum("linux"),
+				Size:   5,
+				GOOS:   "linux",
+				GOARCH: "amd64",
+			},
+		},
+	}
+
+	client := Client{Root: root, GOOS: "linux", GOARCH: "amd64"}
+	changes, err := client.Apply(context.Background(), manifest)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(changes) != 1 {
+		t.Fatalf("expected 1 change, got %d", len(changes))
+	}
+
+	updated, err := os.ReadFile(filepath.Join(root, "SmartHome.Hub"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if string(updated) != "linux" {
+		t.Fatalf("expected linux file content, got %q", updated)
+	}
+}
+
 func sum(value string) string {
 	hash := sha256.Sum256([]byte(value))
 	return hex.EncodeToString(hash[:])

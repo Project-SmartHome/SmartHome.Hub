@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -37,12 +38,18 @@ type Client struct {
 	Root       string
 	BaseURL    string
 	HTTPClient *http.Client
+	GOOS       string
+	GOARCH     string
 }
 
 func (c Client) Plan(manifest Manifest) ([]Change, error) {
 	var changes []Change
 
 	for _, file := range manifest.Files {
+		if !c.matchesPlatform(file) {
+			continue
+		}
+
 		target, err := c.targetPath(file.Path)
 		if err != nil {
 			return nil, err
@@ -98,7 +105,7 @@ func (c Client) Apply(ctx context.Context, manifest Manifest) ([]Change, error) 
 	for _, change := range changes {
 		switch change.Operation {
 		case OperationPut:
-			file, ok := manifestFile(manifest, change.Path)
+			file, ok := c.manifestFile(manifest, change.Path)
 			if !ok {
 				return nil, fmt.Errorf("missing manifest file for %s", change.Path)
 			}
@@ -275,12 +282,26 @@ func fileSHA256(path string) (string, error) {
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
-func manifestFile(manifest Manifest, path string) (ManifestFile, bool) {
+func (c Client) manifestFile(manifest Manifest, path string) (ManifestFile, bool) {
 	for _, file := range manifest.Files {
-		if file.Path == path {
+		if file.Path == path && c.matchesPlatform(file) {
 			return file, true
 		}
 	}
 
 	return ManifestFile{}, false
+}
+
+func (c Client) matchesPlatform(file ManifestFile) bool {
+	targetGOOS := c.GOOS
+	if targetGOOS == "" {
+		targetGOOS = runtime.GOOS
+	}
+	targetGOARCH := c.GOARCH
+	if targetGOARCH == "" {
+		targetGOARCH = runtime.GOARCH
+	}
+
+	return (file.GOOS == "" || file.GOOS == targetGOOS) &&
+		(file.GOARCH == "" || file.GOARCH == targetGOARCH)
 }
