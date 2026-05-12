@@ -4,7 +4,18 @@ on:
   push:
     tags:
       - 'v*'
+  release:
+    types:
+      - published
+  workflow_run:
+    workflows:
+      - Auto Tag Release
+    types:
+      - completed
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build-macos:
@@ -12,6 +23,32 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read release version
+        id: release_version
+        run: |
+          VERSION=$(jq -r '.currentVersion' .Manifest)
+          if [[ -z "$VERSION" || "$VERSION" == "null" ]]; then
+            echo 'Manifest version is empty'
+            exit 1
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Validate tagged commit
+        if: github.event_name == 'workflow_run'
+        run: |
+          VERSION=${{ steps.release_version.outputs.version }}
+          if ! git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null 2>&1; then
+            echo "Tag v$VERSION does not exist"
+            exit 0
+          fi
+          TAG_SHA=$(git rev-list -n 1 "v$VERSION")
+          if [[ "$TAG_SHA" != "$GITHUB_SHA" ]]; then
+            echo "Tag v$VERSION is not on current commit; skipping release"
+            exit 0
+          fi
 
       - name: Set up Go
         uses: actions/setup-go@v4
@@ -39,6 +76,7 @@ jobs:
       - name: Publish release assets
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: v${{ steps.release_version.outputs.version }}
           files: |
             dist/smarthome-hub-darwin-amd64.tar.gz
             dist/smarthome-hub-darwin-arm64.tar.gz
