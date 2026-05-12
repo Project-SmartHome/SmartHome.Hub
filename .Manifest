@@ -1,0 +1,13 @@
+{
+  "updateOwner": "pranay",
+  "updateRepo": "google.com",
+  "enableUpdateCheck": true,
+  "updateAutoApply": false,
+  "currentVersion": "1.0",
+  "updateManifestAssetName": "update-manifest.json",
+  "updateGitHubToken": "",
+  "updateRoot": ".",
+  "databasePath": "",
+  "appEnv": "production",
+  "debugMode": false
+}
