@@ -1,0 +1,16 @@
+project_name: SmartHome.Hub
+
+builds:
+  - binary: SmartHome.Hub
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+
+release:
+  github:
+    owner: madirajupranaykashyap
+    name: SmartHome.Hub
