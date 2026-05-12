@@ -3,7 +3,7 @@ version: 2
 project_name: SmartHome.Hub
 
 builds:
-  - binary: SmartHome.Hub
+  - binary: smarthome-hub
     goos:
       - linux
       - windows
