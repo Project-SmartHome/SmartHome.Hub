@@ -100,19 +100,6 @@ jobs:
             }
           EOF
 
-      - name: Ensure release exists as a draft
-        env:
-          TAG_NAME: v${{ steps.release_version.outputs.version }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
-            echo "Existing release $TAG_NAME found; switching to draft mode."
-            gh release edit "$TAG_NAME" --draft
-          else
-            echo "No release found for $TAG_NAME; creating draft release."
-            gh release create "$TAG_NAME" --draft --title "$TAG_NAME" --notes "Auto-generated draft release"
-          fi
-
       - name: Publish release assets
         uses: softprops/action-gh-release@v1
         with:
