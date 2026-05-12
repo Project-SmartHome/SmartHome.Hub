@@ -81,24 +81,24 @@ jobs:
           VERSION=${TAG_NAME#v}
           cd dist
           cat > update-manifest.json <<'EOF'
-{
-  "version": "${VERSION}",
-  "files": [
-    {
-      "path": "smarthome-hub-darwin-amd64",
-      "url": "https://github.com/${REPO}/releases/download/${TAG_NAME}/smarthome-hub-darwin-amd64",
-      "sha256": "$(shasum -a 256 smarthome-hub-darwin-amd64 | awk '{print $1}')",
-      "size": $(stat -f%z smarthome-hub-darwin-amd64 2>/dev/null || stat -c%s smarthome-hub-darwin-amd64)
-    },
-    {
-      "path": "smarthome-hub-darwin-arm64",
-      "url": "https://github.com/${REPO}/releases/download/${TAG_NAME}/smarthome-hub-darwin-arm64",
-      "sha256": "$(shasum -a 256 smarthome-hub-darwin-arm64 | awk '{print $1}')",
-      "size": $(stat -f%z smarthome-hub-darwin-arm64 2>/dev/null || stat -c%s smarthome-hub-darwin-arm64)
-    }
-  ]
-}
-EOF
+            {
+              "version": "${VERSION}",
+              "files": [
+                {
+                  "path": "smarthome-hub-darwin-amd64",
+                  "url": "https://github.com/${REPO}/releases/download/${TAG_NAME}/smarthome-hub-darwin-amd64",
+                  "sha256": "$(shasum -a 256 smarthome-hub-darwin-amd64 | awk '{print $1}')",
+                  "size": $(stat -f%z smarthome-hub-darwin-amd64 2>/dev/null || stat -c%s smarthome-hub-darwin-amd64)
+                },
+                {
+                  "path": "smarthome-hub-darwin-arm64",
+                  "url": "https://github.com/${REPO}/releases/download/${TAG_NAME}/smarthome-hub-darwin-arm64",
+                  "sha256": "$(shasum -a 256 smarthome-hub-darwin-arm64 | awk '{print $1}')",
+                  "size": $(stat -f%z smarthome-hub-darwin-arm64 2>/dev/null || stat -c%s smarthome-hub-darwin-arm64)
+                }
+              ]
+            }
+          EOF
 
       - name: Publish release assets
         uses: softprops/action-gh-release@v1
