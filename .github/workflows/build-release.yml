@@ -83,6 +83,7 @@ jobs:
       - name: Build update binaries
         run: |
           mkdir -p dist/update-assets
+          cd backend
 
           for target in \
             linux/amd64 \
@@ -102,8 +103,8 @@ jobs:
 
             version="${{ steps.tag.outputs.new_tag }}"
             version="${version#v}"
-            GOOS="$goos" GOARCH="$goarch" CGO_ENABLED=0 cd backend && go build \
-              -ldflags "-s -w -X main.version=${version} -X main.author=madirajupranay" \
+            GOOS="$goos" GOARCH="$goarch" CGO_ENABLED=0 && go build \
+              -ldflags "-s -w -X main.version=${version} -X main.author=Project-SmartHome" \
               -o "dist/update-assets/${asset}" \
               ./cmd/launcher
           done
