@@ -105,7 +105,7 @@ jobs:
             version="${version#v}"
             GOOS="$goos" GOARCH="$goarch" CGO_ENABLED=0 && go build \
               -ldflags "-s -w -X main.version=${version} -X main.author=Project-SmartHome" \
-              -o "dist/update-assets/${asset}" \
+              -o "../dist/update-assets/${asset}" \
               ./cmd/launcher
           done
 
