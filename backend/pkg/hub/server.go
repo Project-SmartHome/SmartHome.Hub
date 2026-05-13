@@ -145,6 +145,12 @@ func NewRouter(db *sql.DB, config Config, checker *updater.Checker) http.Handler
 		router.Post("/update/apply", handleUpdateApply(checker))
 	}
 
+	spa, err := spaHandler()
+	if err != nil {
+		logger.Log.Fatal("failed to create static frontend handler: %s", err.Error())
+	}
+	router.Handle("/*", spa)
+
 	return router
 }
 

@@ -80,6 +80,33 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
 
+      - name: Build update binaries
+        run: |
+          mkdir -p dist/update-assets
+
+          for target in \
+            linux/amd64 \
+            linux/arm64 \
+            darwin/amd64 \
+            darwin/arm64 \
+            windows/amd64 \
+            windows/arm64
+          do
+            goos="${target%/*}"
+            goarch="${target#*/}"
+            asset="SmartHome.Hub_${goos}_${goarch}"
+
+            if [ "$goos" = "windows" ]; then
+              asset="${asset}.exe"
+            fi
+
+            version="${{ steps.tag.outputs.new_tag }}"
+            version="${version#v}"
+            GOOS="$goos" GOARCH="$goarch" CGO_ENABLED=0 go build \
+              -ldflags "-s -w -X main.version=${version} -X main.author=madirajupranay" \
+              -o "dist/update-assets/${asset}" .
+#           done
+
       - name: Create update manifest
         env:
           TAG: ${{ steps.tag.outputs.new_tag }}
