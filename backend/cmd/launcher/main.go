@@ -97,7 +97,50 @@ func checkAndApplyUpdates(ctx context.Context, cfg config.Config) error {
 	// Check for updates
 	release, err := hub.CheckForUpdates(ctx, cfg.UpdateOwner, cfg.UpdateRepo, cfg.UpdateGitHubToken)
 	if err != nil {
-		return fmt.Errorf("failed to check for updates: %w", err)
+		logger.Log.Warn("Failed to check for updates: %s", err.Error())
+		return nil // Don't fail startup due to update check
+	}
+
+	if release.Version == "" {
+		logger.Log.Debug("No releases found")
+		return nil
+	}
+
+	logger.Log.Info("Latest version available: %s (current: %s)", release.Version, cfg.CurrentVersion)
+
+	if release.Version == cfg.CurrentVersion {
+		logger.Log.Debug("Already up to date")
+		return nil
+	}
+
+	if !cfg.UpdateAutoApply {
+		logger.Log.Info("Update available (v%s). Set updateAutoApply=true in config to auto-update.", release.Version)
+		return nil
+	}
+
+	// Apply updates
+	changes, err := hub.ApplyUpdates(ctx, release)
+	if err != nil {
+		logger.Log.Error("Failed to apply updates: %s", err.Error())
+		return fmt.Errorf("update failed: %w", err)
+	}
+
+	if len(changes) == 0 {
+		logger.Log.Info("Already up to date")
+		return nil
+	}
+
+	logger.Log.Info("Applied %d updates successfully", len(changes))
+
+	// Update config with new version
+	cfg.CurrentVersion = release.Version
+	configPath := filepath.Join(rootDir, "config.json")
+	if err := config.SaveConfig(configPath, cfg); err != nil {
+		logger.Log.Warn("Failed to save updated config: %s", err.Error())
+	}
+
+	logger.Log.Info("Updates applied successfully. Please restart the application.")
+	return fmt.Errorf("application updated: restart required")
 	}
 
 	logger.Log.Info("Latest version available: %s (current: %s)", release.Version, cfg.CurrentVersion)
