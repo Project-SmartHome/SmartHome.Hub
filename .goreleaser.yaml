@@ -4,7 +4,8 @@ project_name: SmartHome.Hub
 
 builds:
   - id: launcher
-    main: ./backend/cmd/launcher
+    dir: ./backend
+    main: ./cmd/launcher
     binary: smarthome-hub
     ldflags:
       - -s -w -X main.version={{.Version}} -X main.author=madirajupranay
@@ -20,7 +21,7 @@ builds:
     hooks:
       pre:
         # Build and embed Angular frontend
-        - bash -c 'if [ -d "frontend" ]; then cd frontend && npm install --legacy-peer-deps && npm run build:hubapp && npm run build:shell && mkdir -p ../backend/pkg/hub/frontend && cp -r dist/* ../backend/pkg/hub/frontend/ || cp -r dist/*/dist/* ../backend/pkg/hub/frontend/ 2>/dev/null || true; fi'
+        - bash -c 'if [ -d "../frontend" ]; then cd ../frontend && npm install --legacy-peer-deps && npm run build:hubapp && npm run build:shell && mkdir -p ../backend/pkg/hub/frontend && cp -r dist/* ../backend/pkg/hub/frontend/ || cp -r dist/*/dist/* ../backend/pkg/hub/frontend/ 2>/dev/null || true; fi'
 
 archives:
   - id: archive
