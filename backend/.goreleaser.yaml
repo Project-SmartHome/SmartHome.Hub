@@ -29,9 +29,6 @@ archives:
     formats:
       - tar.gz
       - zip
-    files:
-      - src: config.json
-        dst: config.json
     wrap_in_directory: true
 
 checksum:
