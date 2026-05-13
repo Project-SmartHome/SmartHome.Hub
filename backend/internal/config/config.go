@@ -31,6 +31,8 @@ func DefaultConfig() Config {
 	return Config{
 		Addr:              ":8080",
 		DatabasePath:      "./data/hub.db",
+		UpdateOwner:       "Project-SmartHome",
+		UpdateRepo:        "SmartHome.Hub",
 		EnableUpdateCheck: true,
 		UpdateAutoApply:   true,
 		CurrentVersion:    "dev",
