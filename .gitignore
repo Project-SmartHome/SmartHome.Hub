@@ -1,3 +1,20 @@
 __debug*
 SmartHome.Hub
 .env
+
+# Build artifacts
+backend/build/
+backend/dist/
+backend/pkg/hub/frontend/
+backend/__debug_bin*
+
+# Frontend build output (source is in frontend/)
+frontend/dist/
+frontend/node_modules/
+
+# Environment
+.DS_Store
+*.log
+*.swp
+*.swo
+*~

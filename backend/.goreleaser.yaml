@@ -19,8 +19,8 @@ builds:
       - CGO_ENABLED=1
     hooks:
       pre:
-        # Build Angular frontend if needed
-        - bash -c 'if [ -d "../frontend" ]; then cd ../frontend && npm install --legacy-peer-deps && npm run build:hubapp && npm run build:shell; fi'
+        # Build and embed Angular frontend
+        - bash -c 'if [ -d "../frontend" ]; then cd ../frontend && npm install --legacy-peer-deps && npm run build:hubapp && npm run build:shell && mkdir -p ../backend/pkg/hub/frontend && cp -r dist/* ../backend/pkg/hub/frontend/ || cp -r dist/*/dist/* ../backend/pkg/hub/frontend/ 2>/dev/null || true; fi'
 
 archives:
   - id: archive
