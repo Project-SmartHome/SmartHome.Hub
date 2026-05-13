@@ -66,6 +66,16 @@ func (l *Logger) Fatal(msg string, args ...interface{}) {
 	os.Exit(1)
 }
 
+// logger for warnings
+func (l *Logger) Warn(msg string, args ...interface{}) {
+	l.log("WARN", msg, args...)
+}
+
+// logger for debug messages
+func (l *Logger) Debug(msg string, args ...interface{}) {
+	l.log("DEBUG", msg, args...)
+}
+
 // // Gin Middleware
 // func GinLogger() gin.HandlerFunc {
 // 	return func(c *gin.Context) {
