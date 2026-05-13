@@ -1,0 +1,13 @@
+{
+  "addr": ":8080",
+  "databasePath": "./data/hub.db",
+  "updateOwner": "Project-SmartHome",
+  "updateRepo": "SmartHome.Hub",
+  "enableUpdateCheck": true,
+  "updateAutoApply": true,
+  "updateGitHubToken": "",
+  "currentVersion": "dev",
+  "appEnv": "production",
+  "debugMode": false,
+  "frontendFS": true
+}

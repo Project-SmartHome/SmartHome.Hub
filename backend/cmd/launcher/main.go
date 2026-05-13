@@ -134,49 +134,12 @@ func checkAndApplyUpdates(ctx context.Context, cfg config.Config) error {
 
 	// Update config with new version
 	cfg.CurrentVersion = release.Version
-	configPath := filepath.Join(rootDir, "config.json")
-	if err := config.SaveConfig(configPath, cfg); err != nil {
-		logger.Log.Warn("Failed to save updated config: %s", err.Error())
-	}
-
-	logger.Log.Info("Updates applied successfully. Please restart the application.")
-	return fmt.Errorf("application updated: restart required")
-	}
-
-	logger.Log.Info("Latest version available: %s (current: %s)", release.Version, cfg.CurrentVersion)
-
-	if release.Version == cfg.CurrentVersion {
-		logger.Log.Debug("Already up to date")
-		return nil
-	}
-
-	if !cfg.UpdateAutoApply {
-		logger.Log.Info("Update available (v%s). Set updateAutoApply=true in config to auto-update.", release.Version)
-		return nil
-	}
-
-	// Apply updates
-	logger.Log.Info("Applying updates...")
-	changes, err := hub.ApplyUpdates(ctx, release)
-	if err != nil {
-		return fmt.Errorf("failed to apply updates: %w", err)
-	}
-
-	if len(changes) == 0 {
-		logger.Log.Info("Already up to date")
-		return nil
-	}
-
-	logger.Log.Info("Applied %d updates successfully. Please restart the application.", len(changes))
-
-	// Update config with new version
-	cfg.CurrentVersion = release.Version
 	configPath := filepath.Join(".", "config.json")
 	if err := config.SaveConfig(configPath, cfg); err != nil {
 		logger.Log.Warn("Failed to save updated config: %s", err.Error())
 	}
 
-	// Return error to signal restart needed
+	logger.Log.Info("Updates applied successfully. Please restart the application.")
 	return fmt.Errorf("application updated: restart required")
 }
 
