@@ -20,7 +20,7 @@ builds:
     hooks:
       pre:
         # Build Angular frontend if needed
-        - bash -c 'if [ -d "../frontend" ]; then cd ../frontend && npm install && npm run build; fi'
+        - bash -c 'if [ -d "../frontend" ]; then cd ../frontend && npm install --legacy-peer-deps && npm run build; fi'
 
 archives:
   - id: archive
