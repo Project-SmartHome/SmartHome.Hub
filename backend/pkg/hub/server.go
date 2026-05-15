@@ -61,6 +61,7 @@ func New(config Config) (*Server, error) {
 	config = withDefaults(config)
 
 	logger.Init("hub")
+	logger.Log.Info("using database: %s", config.DatabasePath)
 
 	db, err := database.Open(config.DatabasePath)
 	if err != nil {

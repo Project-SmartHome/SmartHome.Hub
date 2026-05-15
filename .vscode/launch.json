@@ -28,11 +28,27 @@
       "type": "go",
       "request": "launch",
       "mode": "debug",
-      "cwd": "${workspaceFolder}/backend",
-      "program": "${workspaceFolder}/backend/cmd/launcher/main.go",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/backend/hub.go",
       "envFile": "${workspaceFolder}/.env",
       // "buildFlags": "-ldflags=\"-X smarthome/hub/internal/meta.Version=$(git describe --tags --always)\""
       // "buildFlags": "-ldflags=\"-X smarthome/hub/internal/meta.Version=0.0.6\""
+    },
+    {
+      "name": "Debug SmartHome Launcher",
+      "type": "go",
+      "request": "launch",
+      "mode": "debug",
+      "cwd": "${workspaceFolder}/backend",
+      "program": "${workspaceFolder}/backend/cmd/launcher/main.go",
+      "envFile": "${workspaceFolder}/.env"
+    },
+    {
+      "name": "Serve Shell",
+      "type": "node-terminal",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/frontend",
+      "command": "npm run start:shell"
     }
   ]
 }

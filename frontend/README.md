@@ -63,3 +63,6 @@ npm i @angular-architects/native-federation -D
 ng generate application settings
 
 ng g @angular-architects/native-federation:init --project mfe1 --port 4201 --type remote
+
+
+  // "hubapp": "/hubapp/remoteEntry.json"
