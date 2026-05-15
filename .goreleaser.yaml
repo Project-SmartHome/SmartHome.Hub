@@ -2,30 +2,6 @@ version: 2
 
 project_name: SmartHome.Hub
 
-# =========================================================
-# PRE BUILD
-# =========================================================
-
-before:
-  hooks:
-    - bash -c '
-        if [ -d "./frontend" ]; then
-          cd ./frontend &&
-          npm install --legacy-peer-deps &&
-          npm run build:hubapp &&
-          npm run build:shell
-        fi
-      '
-    - bash -c '
-        rm -rf backend/pkg/hub/frontend &&
-        mkdir -p backend/pkg/hub/frontend &&
-        cp -R frontend/dist/shell backend/pkg/hub/frontend/ &&
-        cp -R frontend/dist/hubapp backend/pkg/hub/frontend/ '
-
-# =========================================================
-# GO BUILDS
-# =========================================================
-
 builds:
   - id: launcher
     dir: ./backend
@@ -34,53 +10,56 @@ builds:
     ldflags:
       - -s -w -X main.version={{.Version}} -X main.author=Project-SmartHome
     goos:
+      - linux
+      - windows
       - darwin
     goarch:
       - amd64
       - arm64
     env:
       - CGO_ENABLED=0
+    hooks:
+      pre:
+        # Build and embed Angular frontend
+        - bash -c 'if [ -d "../frontend" ]; then cd ../frontend && npm install --legacy-peer-deps && npm run build:hubapp && npm run build:shell && mkdir -p ../backend/pkg/hub/frontend && cp -r dist/* ../backend/pkg/hub/frontend/ || cp -r dist/*/dist/* ../backend/pkg/hub/frontend/ 2>/dev/null || true; fi'
 
-# =========================================================
-# UNIVERSAL BINARIES
-# =========================================================
-
+      # Generates a .pkg installer using macOS tools during the build stage
+      post:
+        - bash -c '
+            if [ "{{.Os}}" = "darwin" ]; then
+              mkdir -p dist/pkg_root/usr/local/bin
+              cp "{{.Path}}" dist/pkg_root/usr/local/bin/
+              pkgbuild --root dist/pkg_root \
+                       --identifier "com.project-smarthome.hub" \
+                       --version "{{.Version}}" \
+                       --install-location "/" \
+                       "dist/SmartHomeHub-{{.Arch}}.pkg"
+              rm -rf dist/pkg_root
+            fi'
 universal_binaries:
-  - id: universal
-    replace: true
+  - id: launcher                # Connects to your build block ID above
+    ids:
+      - launcher
     name_template: smarthome-hub
-
-# =========================================================
-# ARCHIVES
-# =========================================================
+    replace: true
 
 archives:
-  - id: macos
-    ids:
-      - universal
+  - id: archive
+    builds:
+      - launcher
     formats:
       - tar.gz
       - zip
     wrap_in_directory: true
 
-# =========================================================
-# CHECKSUMS
-# =========================================================
-
 checksum:
   name_template: checksums.txt
-
-# =========================================================
-# RELEASE
-# =========================================================
 
 release:
   prerelease: auto
   draft: false
-
-# =========================================================
-# CHANGELOG
-# =========================================================
+  extra_files:
+    - glob: ./dist/*.pkg
 
 changelog:
   sort: asc
@@ -89,75 +68,3 @@ changelog:
       - '^docs:'
       - '^test:'
       - '^chore:'
-
-
-# =========================================================
-# ANNOUNCEMENTS
-# =========================================================
-
-announce:
-  skip: true
-
-# =========================================================
-# SNAPSHOTS
-# =========================================================
-
-snapshot:
-  version_template: "{{ incpatch .Version }}-next"
-
-# =========================================================
-# EXTRA HOOKS
-# =========================================================
-
-source:
-  enabled: false
-
-# =========================================================
-# BREW (OPTIONAL)
-# =========================================================
-
-brews: []
-
-# =========================================================
-# SIGNS
-# =========================================================
-
-signs: []
-
-# =========================================================
-# PUBLISHERS
-# =========================================================
-
-publishers:
-  - name: macos-pkg
-    cmd: bash
-      - -c
-      - |
-        set -e
-
-        rm -rf packaging/root
-        rm -rf packaging/scripts
-
-        mkdir -p packaging/root/usr/local/bin
-        mkdir -p packaging/root/usr/local/share/smarthome
-        mkdir -p packaging/root/Library/LaunchDaemons
-        mkdir -p packaging/scripts
-
-        cp dist/smarthome-hub_darwin_all/smarthome-hub \
-           packaging/root/usr/local/bin/hub
-
-        chmod +x packaging/root/usr/local/bin/hub
-
-        cp -R frontend/dist \
-           packaging/root/usr/local/share/smarthome/frontend
-
-        chmod +x packaging/root/usr/local/bin/hub-uninstall
-
-        chmod +x packaging/scripts/postinstall
-        
-        pkgbuild \
-          --root packaging/root \
-          --scripts packaging/scripts \
-          --identifier com.smarthome.hub \
-          --version {{ .Version }} \
-          dist/smarthome-hub.pkg
