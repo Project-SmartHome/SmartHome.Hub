@@ -2,56 +2,112 @@ version: 2
 
 project_name: SmartHome.Hub
 
+before:
+  hooks:
+    # Build Angular frontend
+    - bash -c '
+        if [ -d "./frontend" ]; then
+          cd ./frontend &&
+          npm install --legacy-peer-deps &&
+          npm run build:hubapp &&
+          npm run build:shell
+        fi
+      '
+
+    # Copy frontend into Go embed directory
+    - bash -c '
+        rm -rf backend/pkg/hub/frontend &&
+        mkdir -p backend/pkg/hub/frontend &&
+        cp -R frontend/dist/shell backend/pkg/hub/frontend/ &&
+        cp -R frontend/dist/hubapp backend/pkg/hub/frontend/'
+
 builds:
   - id: launcher
     dir: ./backend
     main: ./cmd/launcher
     binary: smarthome-hub
     ldflags:
-      - -s -w -X main.version={{.Version}} -X main.author=Project-SmartHome
+      - -s -w
+      - -X main.version={{ .Version }} 
+      - -X main.author=Project-SmartHome
+
     goos:
       - linux
-      - windows
-      - darwin
+
     goarch:
       - amd64
       - arm64
     env:
       - CGO_ENABLED=0
-    hooks:
-      pre:
-        # Build and embed Angular frontend
-        - bash -c 'if [ -d "../frontend" ]; then cd ../frontend && npm install --legacy-peer-deps && npm run build:hubapp && npm run build:shell && mkdir -p ../backend/pkg/hub/frontend && cp -r dist/* ../backend/pkg/hub/frontend/ || cp -r dist/*/dist/* ../backend/pkg/hub/frontend/ 2>/dev/null || true; fi'
 
-universal_binaries:
-  - id: launcher                # Connects to your build block ID above
-    ids:
-      - launcher
-    name_template: smarthome-hub
-    replace: true
+# =========================================================
+# ARCHIVES
+# =========================================================
 
 archives:
-  - id: archive
-    builds:
+  - id: linux-archives
+    ids:
       - launcher
     formats:
       - tar.gz
       - zip
     wrap_in_directory: true
 
+# =========================================================
+# LINUX PACKAGES
+# =========================================================
+
+nfpms:
+  - id: linux-packages
+    package_name: smarthome-hub
+    vendor: Project-SmartHome
+    homepage: "https://github.com/Project-SmartHome/SmartHome.Hub"
+    maintainer: "Project-SmartHome"
+    description: |
+      Smart home automation hub.
+    license: MIT
+    formats:
+      - deb
+      - rpm
+      - apk
+    bindir: /usr/local/bin
+    builds:
+      - launcher
+    contents:
+      # Main binary
+      - src: ./dist/{{ .ProjectName }}_Linux_x86_64/smarthome-hub
+        dst: /usr/local/bin/smarthome-hub
+
+      # Frontend assets
+      - src: ./frontend/dist
+        dst: /usr/local/share/smarthome/frontend
+
+    scripts:
+      postinstall: packaging/linux/postinstall.sh
+      preremove: packaging/linux/preremove.sh
+
+# =========================================================
+# CHECKSUMS
+# =========================================================
+
 checksum:
   name_template: checksums.txt
+
+# =========================================================
+# RELEASE
+# =========================================================
 
 release:
   prerelease: auto
   draft: false
-  extra_files:
-    - glob: ./dist/*.pkg
+# =========================================================
+# CHANGELOG
+# =========================================================
 
 changelog:
   sort: asc
   filters:
     exclude:
-      - '^docs:'
-      - '^test:'
-      - '^chore:'
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
