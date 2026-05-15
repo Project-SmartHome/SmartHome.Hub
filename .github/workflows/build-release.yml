@@ -192,7 +192,8 @@ jobs:
         with:
           node-version: '22'
           registry-url: 'https://pkgs.dev.azure.com/madirajupranayukashyap/HomeAutomation/_packaging/HomeAutomationFeed/npm/registry/'
-
+          scope: '@ha'
+          
       - name: Build Angular frontend
         run: |
           cd frontend

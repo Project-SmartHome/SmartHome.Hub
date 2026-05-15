@@ -46,3 +46,16 @@ changelog:
       - '^docs:'
       - '^test:'
       - '^chore:'
+
+nfpms:
+  - id: macos-pkg
+    package_name: smarthome-hub-pkg
+    formats:
+      - apk
+
+    contents:
+      - src: ./dist/hub_darwin_arm64_v8.0/hub
+        dst: /usr/local/bin/hub
+
+      - src: ./frontend
+        dst: /usr/local/share/smarthome
