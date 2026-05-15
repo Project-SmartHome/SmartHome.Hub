@@ -221,7 +221,7 @@ jobs:
         run: |
           mkdir -p dist/pkg_root/usr/local/bin
       
-          cp dist/smarthome-hub_darwin_all/smarthome-hub \
+          cp dist/SmartHome.Hub_0.0.36_darwin_all \
              dist/pkg_root/usr/local/bin/hub
       
           pkgbuild \
