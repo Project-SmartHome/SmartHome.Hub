@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"os"
+	"path/filepath"
 )
 
 // Config holds the application configuration
@@ -28,7 +29,7 @@ type Config struct {
 func DefaultConfig() Config {
 	return Config{
 		Addr:              ":8080",
-		DatabasePath:      "./data/hub.db",
+		DatabasePath:      DefaultDatabasePath(),
 		UpdateOwner:       "Project-SmartHome",
 		UpdateRepo:        "SmartHome.Hub",
 		EnableUpdateCheck: true,
@@ -37,6 +38,14 @@ func DefaultConfig() Config {
 		DebugMode:         false,
 		FrontendFS:        true,
 	}
+}
+
+func DefaultDatabasePath() string {
+	if dir, err := os.UserConfigDir(); err == nil {
+		return filepath.Join(dir, "SmartHome.Hub", "hub.db")
+	}
+
+	return filepath.Join(os.TempDir(), "smarthome-hub", "hub.db")
 }
 
 // LoadConfig loads configuration from a JSON file or returns defaults

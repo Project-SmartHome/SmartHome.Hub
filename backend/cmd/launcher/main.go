@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"smarthome/hub/core/logger"
@@ -43,7 +44,12 @@ func main() {
 	cancel()
 	if err != nil {
 		if errors.Is(err, errRestartRequired) {
-			logger.Log.Info("Restart required after update. Exiting.")
+			logger.Log.Info("Restart required after update. Restarting application...")
+			if err := restartApplication(); err != nil {
+				logger.Log.Error("Failed to restart application: %s", err.Error())
+				logger.Log.Info("Please restart the application manually.")
+				return
+			}
 			return
 		}
 		logger.Log.Warn("Update check failed: %s", err.Error())
@@ -157,6 +163,32 @@ func checkAndApplyUpdates(ctx context.Context, cfg config.Config, currentVersion
 
 	logger.Log.Info("Updates applied successfully. Please restart the application.")
 	return errRestartRequired
+}
+
+func restartApplication() error {
+	exePath, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("failed to get executable path: %w", err)
+	}
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get working directory: %w", err)
+	}
+
+	cmd := exec.Command(exePath, os.Args[1:]...)
+	cmd.Dir = cwd
+	cmd.Env = os.Environ()
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("failed to start updated application: %w", err)
+	}
+
+	logger.Log.Info("Started updated application with pid %d", cmd.Process.Pid)
+	return nil
 }
 
 func printBanner() {

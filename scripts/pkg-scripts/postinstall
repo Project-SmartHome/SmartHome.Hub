@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+LABEL="com.project-smarthome.hub"
+LAUNCHD_FILE="/Library/LaunchAgents/${LABEL}.plist"
+USER_ID="${SUDO_UID:-$(id -u)}"
+
+if [[ -f "$LAUNCHD_FILE" ]]; then
+  launchctl bootstrap "gui/${USER_ID}" "$LAUNCHD_FILE" >/dev/null 2>&1 || true
+  launchctl kickstart -k "gui/${USER_ID}/${LABEL}" >/dev/null 2>&1 || true
+fi
+
+exit 0

@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"smarthome/hub/internal/config"
 
 	_ "modernc.org/sqlite"
 )
@@ -12,7 +13,7 @@ import (
 var DB *sql.DB
 
 func Connect() {
-	db, err := Open("./data/hub.db")
+	db, err := Open(config.DefaultDatabasePath())
 	if err != nil {
 		log.Fatal(err)
 	}

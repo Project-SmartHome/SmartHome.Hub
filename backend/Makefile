@@ -1,4 +1,4 @@
-.PHONY: build run clean test dev setup
+.PHONY: build run clean test dev setup install package-macos uninstall uninstall-keep-data
 
 # Build variables
 VERSION ?= dev
@@ -29,6 +29,10 @@ help:
 	@echo "$(GREEN)Release & Distribution:$(NC)"
 	@echo "  make release        - Create release with goreleaser"
 	@echo "  make dist           - Build distribution packages"
+	@echo "  make package-macos  - Build a macOS installer package (.pkg)"
+	@echo "  make install        - Build and install the macOS package"
+	@echo "  make uninstall      - Uninstall on macOS and remove app data"
+	@echo "  make uninstall-keep-data - Uninstall on macOS but keep app data"
 	@echo ""
 	@echo "$(GREEN)Maintenance:$(NC)"
 	@echo "  make test           - Run tests"
@@ -109,6 +113,21 @@ dist: clean build-all
 	@tar -czf $(DIST_DIR)/$(BINARY_NAME)-macos-amd64.tar.gz -C $(BUILD_DIR)/macos $(BINARY_NAME)-amd64
 	@tar -czf $(DIST_DIR)/$(BINARY_NAME)-macos-arm64.tar.gz -C $(BUILD_DIR)/macos $(BINARY_NAME)-arm64
 	@echo "$(GREEN)✓ Distribution packages created in $(DIST_DIR)$(NC)"
+
+package-macos:
+	@echo "$(BLUE)Building macOS package...$(NC)"
+	@../scripts/package-macos.sh
+
+install: package-macos
+	@echo "$(BLUE)Installing macOS package...$(NC)"
+	sudo installer -pkg $(BUILD_DIR)/SmartHome.Hub.pkg -target /
+	@echo "$(GREEN)✓ Installed package$(NC)"
+
+uninstall:
+	@../scripts/uninstall-macos.sh
+
+uninstall-keep-data:
+	@../scripts/uninstall-macos.sh --keep-data
 
 test:
 	@echo "$(BLUE)Running tests...$(NC)"
