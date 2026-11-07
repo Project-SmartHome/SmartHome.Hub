@@ -6,6 +6,8 @@ on:
       - main
     paths:
       - 'backend/**'
+      - 'Dockerfile'
+      - '.github/workflows/backend.yml'
   workflow_dispatch:
 
 # Grant the workflow permission to write to GitHub Packages
@@ -49,7 +51,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: ./backend
           file: ./Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
           provenance: false
