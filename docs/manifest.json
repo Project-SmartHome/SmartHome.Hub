@@ -1,0 +1,21 @@
+{
+  "package": "SmartHome Hub Documentation",
+  "generated_from": "requirements and architecture decisions discussed in ChatGPT",
+  "format": "Markdown",
+  "documents": [
+    "01-product-requirements.md",
+    "02-system-architecture.md",
+    "03-esp-now-network-design.md",
+    "04-device-protocol.md",
+    "05-backend-design.md",
+    "06-frontend-design.md",
+    "07-cloud-integration.md",
+    "08-security-design.md",
+    "09-deployment-operations.md",
+    "10-repository-structure.md",
+    "11-development-roadmap.md",
+    "12-architecture-decisions.md",
+    "README.md"
+  ],
+  "note": "Recreated baseline; TBD items require validation before implementation."
+}
