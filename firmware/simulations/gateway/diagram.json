@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "author": "SmartHome",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "board-esp32-devkit-c-v4",
+      "id": "esp1",
+      "top": 0,
+      "left": 0,
+      "attrs": {}
+    },
+    {
+      "type": "board-esp32-devkit-c-v4",
+      "id": "esp2",
+      "top": -100,
+      "left": 200,
+      "attrs": {
+        "color": "red"
+      }
+    }
+  ],
+  "connections": [
+    ["esp1:TX", "esp2:RX", "green", []],
+    ["esp1:RX", "esp2:TX", "red", []],
+    ["esp1:GND.1", "esp2:GND.1", "black", []]
+  ]
+}
