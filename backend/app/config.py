@@ -3,7 +3,7 @@ import os
 
 
 class BaseConfig:
-    SECRET_KEY = os.environ.get("SECRET_KEY")
+    SECRET_KEY = os.environ.get("SECRET_KEYsecure")
 
     SQLALCHEMY_DATABASE_URI = os.environ.get(
         "DATABASE_URL",
