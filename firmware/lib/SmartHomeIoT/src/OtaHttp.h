@@ -40,8 +40,22 @@
 
 namespace ShOta {
 
+// "HTTP 404", or for transport failures e.g. "connection failed".
+inline String describeStatus(int status) {
+    if (status > 0) return "HTTP " + String(status);
+    switch (status) {
+        case -100: return "invalid URL";
+        case -101: return "redirect to non-HTTPS URL refused";
+        case -102: return "too many redirects";
+        default: return HTTPClient::errorToString(status) + " (" + String(status) + ")";
+    }
+}
+
 constexpr uint8_t MAX_REDIRECTS = 5;
 constexpr uint16_t HTTP_TIMEOUT_MS = 15000;
+// The Arduino default TCP connect timeout (5 s) is tight for reaching GitHub
+// from a home connection; a timeout shows up as "start_ssl_client: -1".
+constexpr int32_t CONNECT_TIMEOUT_MS = 15000;
 constexpr int MAX_MANIFEST_BYTES = 16384;
 
 struct Release {
@@ -95,6 +109,9 @@ inline bool openUrl(HTTPClient& http, WiFiClient& client, const char* url, int& 
         http.setReuse(false);
         http.setFollowRedirects(HTTPC_DISABLE_FOLLOW_REDIRECTS);
         http.setTimeout(HTTP_TIMEOUT_MS);
+#if defined(ESP32)
+        http.setConnectTimeout(CONNECT_TIMEOUT_MS);
+#endif
         http.setUserAgent("SmartHome-OTA/" SH_FIRMWARE_VERSION " (" SH_FIRMWARE_TARGET ")");
         http.collectHeaders(HEADERS, 1);
 
@@ -132,8 +149,8 @@ inline bool fetchManifest(const char* url, JsonDocument& manifest,
     HTTPClient http;
     int status = 0;
     if (!openUrl(http, tls.client, url, status)) {
-        error = status == 404 ? "no firmware manifest in the latest release (404)"
-                              : "HTTP " + String(status);
+        error = status == 404 ? String("no firmware manifest in the latest release (404)")
+                              : describeStatus(status);
         http.end();
         return false;
     }
@@ -226,7 +243,7 @@ inline bool installFromUrl(const Release& release, String& error) {
     HTTPClient http;
     int status = 0;
     if (!openUrl(http, tls.client, release.url, status)) {
-        error = "download failed: HTTP " + String(status);
+        error = "download failed: " + describeStatus(status);
         http.end();
         return false;
     }

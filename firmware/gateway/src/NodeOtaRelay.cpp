@@ -470,7 +470,7 @@ bool NodeOtaRelay::downloadImage(const ShOta::Release& release) {
     HTTPClient http;
     int status = 0;
     if (!ShOta::openUrl(http, tls.client, release.url, status)) {
-        Serial.printf("[NodeOTA] Download failed: HTTP %d\n", status);
+        Serial.printf("[NodeOTA] Download failed: %s\n", ShOta::describeStatus(status).c_str());
         http.end();
         return false;
     }

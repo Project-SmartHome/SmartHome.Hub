@@ -112,6 +112,8 @@ char registrationRequestTopic[128] = {};
 bool userIdValid = false;
 char mqttClientId[40] = {};
 bool wifiWasConnected = false;
+uint32_t lastWifiAttemptAt = 0;
+constexpr uint32_t WIFI_RETRY_MS = 30000;
 bool clockReadyWasLogged = false;
 uint32_t lastMqttAttempt = 0;
 uint32_t mqttRetryDelay = MQTT_RETRY_MIN_MS;
@@ -392,6 +394,20 @@ void onEspNowMessage(const uint8_t* mac, const uint8_t* data, int length) {
     receiveHead = next;
 }
 
+// Logs why the access point refused or dropped us (runs on the Wi-Fi event
+// task). Repeats of the same reason are only logged every 30 s.
+void onWifiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
+    if (event != ARDUINO_EVENT_WIFI_STA_DISCONNECTED) return;
+    static uint8_t lastReason = 0;
+    static uint32_t lastLoggedAt = 0;
+    const uint8_t reason = info.wifi_sta_disconnected.reason;
+    if (reason == lastReason && millis() - lastLoggedAt < 30000) return;
+    lastReason = reason;
+    lastLoggedAt = millis();
+    Serial.printf("[WiFi] Not connected: reason %u (%s)\n", reason,
+                  WiFi.disconnectReasonName(static_cast<wifi_err_reason_t>(reason)));
+}
+
 void connectWifi() {
     if (settings.wifiSsid[0] == '\0') {
         Serial.println("[WiFi] No credentials: flash once over USB with gateway/include/secrets.h");
@@ -399,7 +415,20 @@ void connectWifi() {
     }
     WiFi.setAutoReconnect(true);
     WiFi.begin(settings.wifiSsid, settings.wifiPassword);
+    lastWifiAttemptAt = millis();
     Serial.printf("[WiFi] Connecting to %s\n", settings.wifiSsid);
+}
+
+// The core retries a failed first connection only once, and later only for
+// some failure reasons, so without this a gateway that missed the router at
+// boot could stay offline (and unable to update) until power-cycled.
+void retryWifiIfStuck() {
+    if (settings.wifiSsid[0] == '\0' || millis() - lastWifiAttemptAt < WIFI_RETRY_MS) return;
+    Serial.printf("[WiFi] Still not connected (status %d); retrying %s\n",
+                  static_cast<int>(WiFi.status()), settings.wifiSsid);
+    WiFi.disconnect();
+    WiFi.begin(settings.wifiSsid, settings.wifiPassword);
+    lastWifiAttemptAt = millis();
 }
 
 bool clockIsValid() {
@@ -575,6 +604,7 @@ void setup() {
     mqtt.setBufferSize(768);
     mqtt.setCallback(onCloudMessage);
 
+    WiFi.onEvent(onWifiEvent);
     connectWifi();
     configTime(0, 0, "pool.ntp.org", "time.google.com");
     Serial.printf("[Gateway] Ready; ESP-NOW will follow Wi-Fi channel %u\n",
@@ -606,8 +636,10 @@ void loop() {
         if (wifiWasConnected) {
             Serial.println("[WiFi] Disconnected; waiting for reconnect");
             wifiWasConnected = false;
+            lastWifiAttemptAt = millis();  // give auto-reconnect the first 30 s
             for (PendingNode& pending : pendingNodes) pending.subscribed = false;
         }
+        retryWifiIfStuck();
         delay(nodeOta.busy() ? 1 : 10);
         return;
     }
