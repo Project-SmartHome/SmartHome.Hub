@@ -1,0 +1,4 @@
+[wokwi]
+version = 1
+firmware = '../../room-nodes/.pio/build/wokwi/room-node.bin'
+elf = '../../room-nodes/.pio/build/wokwi/room-node.elf'

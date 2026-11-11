@@ -1,0 +1,105 @@
+name: Firmware CI
+
+# Builds every firmware target (gateway, ESP-NOW nodes, room nodes).
+# - On push / PR: compile check only.
+# - Called by release.yml with a version: builds with that version stamped in,
+#   then packages the images + firmware-manifest.json as the "firmware"
+#   artifact, which release.yml attaches to the GitHub Release. Devices poll
+#   releases/latest/download/firmware-manifest.json and update themselves
+#   (see firmware/OTA.md).
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'firmware/**'
+      - '.github/workflows/firmware.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'firmware/**'
+      - '.github/workflows/firmware.yml'
+  workflow_call:
+    inputs:
+      version:
+        description: 'Release version (X.Y.Z) to stamp into the images; empty = compile check'
+        type: string
+        required: false
+        default: ''
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Distinct prefix from backend.yml: when both run inside release.yml,
+# github.workflow is "Release" for each, and a shared group would cancel one.
+concurrency:
+  group: firmware-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' && inputs.version == '' }}
+
+env:
+  # Release builds carry the version; CI builds are stamped 0.0.0+dev.
+  SH_FIRMWARE_VERSION: ${{ inputs.version }}
+  SH_OTA_MANIFEST_URL: https://github.com/${{ github.repository }}/releases/latest/download/firmware-manifest.json
+
+jobs:
+  build:
+    name: Build firmware
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Cache PlatformIO toolchains
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.platformio/.cache
+            ~/.platformio/packages
+            ~/.platformio/platforms
+          key: pio-${{ runner.os }}-${{ hashFiles('firmware/**/platformio.ini') }}
+          restore-keys: pio-${{ runner.os }}-
+
+      - name: Install PlatformIO
+        run: pip install platformio==6.2.0
+
+      # secrets.h is git-ignored, so these images contain no credentials;
+      # devices use the ones saved in flash from their first USB flash.
+      - name: Build gateway
+        run: pio run -d firmware/gateway -e esp32dev
+
+      - name: Build ESP-NOW nodes
+        run: pio run -d firmware/node -e esp32dev -e nodemcuv2 -e esp8266
+
+      - name: Build room nodes
+        run: pio run -d firmware/room-nodes -e esp32dev -e nodemcuv2 -e esp8266
+
+      - name: Package release assets
+        if: inputs.version != ''
+        run: |
+          python firmware/scripts/package_firmware.py \
+            --version "${{ inputs.version }}" \
+            --repo "${{ github.repository }}" \
+            --out dist/firmware
+          {
+            echo "### Firmware ${{ inputs.version }}"
+            echo
+            echo '| Target | Size | MD5 |'
+            echo '|---|---:|---|'
+            python -c "import json;m=json.load(open('dist/firmware/firmware-manifest.json'));[print(f'| {t} | {v[\"size\"]:,} | \`{v[\"md5\"]}\` |') for t,v in m['targets'].items()]"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload release assets
+        if: inputs.version != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware
+          path: dist/firmware/
+          if-no-files-found: error
+          retention-days: 7

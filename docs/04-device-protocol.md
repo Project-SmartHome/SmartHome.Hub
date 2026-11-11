@@ -47,7 +47,7 @@ Do not trust a sender-provided timestamp as the sole replay defense. Use authent
 | COMMAND_ACK | Node → hub | Command accepted/rejected |
 | COMMAND_RESULT | Node → hub | Execution result and resulting state |
 | CONFIG_GET/SET | Hub ↔ node | Controlled configuration |
-| OTA_CONTROL | Hub ↔ node | Optional future firmware update coordination |
+| OTA_CONTROL | Hub ↔ node | Firmware update over ESP-NOW; implemented as the Offer/Data/Ack packets in `firmware/lib/SmartHomeIoT/src/OtaProtocol.h` (see `firmware/OTA.md`) |
 
 ## 4.4 Command lifecycle
 

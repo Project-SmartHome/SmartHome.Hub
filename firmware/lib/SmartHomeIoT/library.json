@@ -1,8 +1,8 @@
 {
     "name": "SmartHomeIoT",
     "version": "1.0.0",
-    "description": "Shared SmartHome ESP32 firmware library",
+    "description": "Shared SmartHome firmware library for ESP32 and ESP8266",
     "frameworks": "arduino",
-    "platforms": "espressif32",
+    "platforms": ["espressif32", "espressif8266"],
     "headers": "NodeRegistration.h"
 }

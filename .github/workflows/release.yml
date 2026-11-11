@@ -3,8 +3,12 @@ name: Release
 # Manually triggered from the Actions tab ("Run workflow").
 # 1. Runs CI as a gate
 # 2. Auto-increments the version from the latest vX.Y.Z tag
-# 3. Builds and pushes the Docker image to GHCR with the version tags
-# 4. Creates the git tag + GitHub Release with auto-generated notes
+# 3. Builds every firmware image stamped with that version
+# 4. Builds and pushes the Docker image to GHCR with the version tags
+# 5. Creates the git tag + GitHub Release with auto-generated notes and the
+#    firmware images + firmware-manifest.json attached. Gateways and room
+#    nodes poll releases/latest/download/firmware-manifest.json and update
+#    themselves; the gateway relays node images over ESP-NOW (firmware/OTA.md).
 on:
   workflow_dispatch:
     inputs:
@@ -34,13 +38,14 @@ jobs:
     name: CI
     uses: ./.github/workflows/backend.yml
 
-  release:
-    name: Tag, publish image & release
+  version:
+    name: Compute version
     needs: ci
     runs-on: ubuntu-latest
-    permissions:
-      contents: write   # create tag + GitHub Release
-      packages: write   # push to GHCR
+    outputs:
+      previous: ${{ steps.version.outputs.previous }}
+      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
     steps:
       - name: Ensure release runs from main
         if: github.ref != 'refs/heads/main'
@@ -84,6 +89,32 @@ jobs:
           echo "version=${next#v}"  >> "$GITHUB_OUTPUT"
           echo "### Releasing ${next} (previous: ${latest}, bump: ${BUMP})" >> "$GITHUB_STEP_SUMMARY"
 
+  firmware:
+    name: Firmware
+    needs: version
+    uses: ./.github/workflows/firmware.yml
+    with:
+      version: ${{ needs.version.outputs.version }}
+
+  release:
+    name: Tag, publish image & release
+    needs: [version, firmware]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # create tag + GitHub Release
+      packages: write   # push to GHCR
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # --notes-start-tag needs the previous tag
+
+      - name: Download firmware images
+        uses: actions/download-artifact@v4
+        with:
+          name: firmware
+          path: dist/firmware
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -101,9 +132,9 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           # e.g. 1.4.2, 1.4, 1 (when >=1), latest, sha-abc1234
           tags: |
-            type=semver,pattern={{version}},value=${{ steps.version.outputs.tag }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ steps.version.outputs.tag }}
-            type=semver,pattern={{major}},value=${{ steps.version.outputs.tag }}
+            type=semver,pattern={{version}},value=${{ needs.version.outputs.tag }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ needs.version.outputs.tag }}
+            type=semver,pattern={{major}},value=${{ needs.version.outputs.tag }}
             type=raw,value=latest
             type=sha
 
@@ -116,29 +147,31 @@ jobs:
           provenance: false
           sbom: false
           build-args: |
-            APP_VERSION=${{ steps.version.outputs.version }}
+            APP_VERSION=${{ needs.version.outputs.version }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=smarthome-hub
           cache-to: type=gha,mode=max,scope=smarthome-hub
 
-      # Tag + release are created only after the image is pushed successfully,
-      # so a failed build never leaves an orphan tag behind.
+      # Tag + release are created only after the image is pushed and the
+      # firmware built, so a failed build never leaves an orphan tag behind.
+      # gh uploads the assets to a draft and publishes it at the end, so
+      # devices never see a "latest" release without its manifest.
       - name: Create tag and GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ steps.version.outputs.tag }}
-          PREVIOUS: ${{ steps.version.outputs.previous }}
-          VERSION: ${{ steps.version.outputs.version }}
+          TAG: ${{ needs.version.outputs.tag }}
+          PREVIOUS: ${{ needs.version.outputs.previous }}
+          VERSION: ${{ needs.version.outputs.version }}
           IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
         run: |
           image=$(echo "$IMAGE" | tr '[:upper:]' '[:lower:]')
-          notes=$(printf '## Docker image\n\n```bash\ndocker pull %s:%s\n```\n' "$image" "$VERSION")
+          notes=$(printf '## Docker image\n\n```bash\ndocker pull %s:%s\n```\n\n## Firmware\n\nGateways and room nodes install this release automatically (ESP-NOW nodes via their gateway). Images are attached below; `firmware-manifest.json` lists their sizes and checksums.\n' "$image" "$VERSION")
 
-          args=(--target "$GITHUB_SHA" --title "$TAG" --generate-notes --notes "$notes")
+          args=(--target "$GITHUB_SHA" --title "$TAG" --generate-notes --notes "$notes" --latest)
           if git rev-parse -q --verify "refs/tags/${PREVIOUS}" >/dev/null; then
             args+=(--notes-start-tag "$PREVIOUS")
           fi
 
-          gh release create "$TAG" "${args[@]}"
-          echo "Released **${TAG}** → \`${image}:${VERSION}\`" >> "$GITHUB_STEP_SUMMARY"
+          gh release create "$TAG" dist/firmware/* "${args[@]}"
+          echo "Released **${TAG}** → \`${image}:${VERSION}\` + $(ls dist/firmware/*.bin | wc -l) firmware images" >> "$GITHUB_STEP_SUMMARY"

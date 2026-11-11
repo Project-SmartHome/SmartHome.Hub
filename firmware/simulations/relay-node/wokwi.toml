@@ -1,4 +1,4 @@
 [wokwi]
 version = 1
-firmware = '../../node/.pio/build/esp32dev/node.bin'
-elf = '../../node/.pio/build/esp32dev/node.elf'
+firmware = '../../node/.pio/build/wokwi/node.bin'
+elf = '../../node/.pio/build/wokwi/node.elf'

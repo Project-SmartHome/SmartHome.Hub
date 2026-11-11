@@ -1,3 +1,5 @@
 .DS_Store
 
 **/__pycache__/**
+# Firmware release assets produced by firmware/scripts/package_firmware.py
+dist/

@@ -1,0 +1,573 @@
+{
+  "version": 1,
+  "author": "SmartHome",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "board-esp32-devkit-c-v4",
+      "id": "esp",
+      "top": 0,
+      "left": 0,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-relay-module",
+      "id": "relay1",
+      "top": -260,
+      "left": 260,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r1",
+      "top": -240,
+      "left": 470,
+      "attrs": {
+        "value": "220"
+      }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led1",
+      "top": -270,
+      "left": 600,
+      "attrs": {
+        "color": "red",
+        "label": "CH1 GPIO23"
+      }
+    },
+    {
+      "type": "wokwi-relay-module",
+      "id": "relay2",
+      "top": -170,
+      "left": 260,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r2",
+      "top": -150,
+      "left": 470,
+      "attrs": {
+        "value": "220"
+      }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led2",
+      "top": -180,
+      "left": 600,
+      "attrs": {
+        "color": "orange",
+        "label": "CH2 GPIO22"
+      }
+    },
+    {
+      "type": "wokwi-relay-module",
+      "id": "relay3",
+      "top": -80,
+      "left": 260,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r3",
+      "top": -60,
+      "left": 470,
+      "attrs": {
+        "value": "220"
+      }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led3",
+      "top": -90,
+      "left": 600,
+      "attrs": {
+        "color": "yellow",
+        "label": "CH3 GPIO21"
+      }
+    },
+    {
+      "type": "wokwi-relay-module",
+      "id": "relay4",
+      "top": 10,
+      "left": 260,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r4",
+      "top": 30,
+      "left": 470,
+      "attrs": {
+        "value": "220"
+      }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led4",
+      "top": 0,
+      "left": 600,
+      "attrs": {
+        "color": "limegreen",
+        "label": "CH4 GPIO19"
+      }
+    },
+    {
+      "type": "wokwi-relay-module",
+      "id": "relay5",
+      "top": 100,
+      "left": 260,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r5",
+      "top": 120,
+      "left": 470,
+      "attrs": {
+        "value": "220"
+      }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led5",
+      "top": 90,
+      "left": 600,
+      "attrs": {
+        "color": "cyan",
+        "label": "CH5 GPIO18"
+      }
+    },
+    {
+      "type": "wokwi-relay-module",
+      "id": "relay6",
+      "top": 190,
+      "left": 260,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r6",
+      "top": 210,
+      "left": 470,
+      "attrs": {
+        "value": "220"
+      }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led6",
+      "top": 180,
+      "left": 600,
+      "attrs": {
+        "color": "blue",
+        "label": "CH6 GPIO25"
+      }
+    },
+    {
+      "type": "wokwi-relay-module",
+      "id": "relay7",
+      "top": 280,
+      "left": 260,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r7",
+      "top": 300,
+      "left": 470,
+      "attrs": {
+        "value": "220"
+      }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led7",
+      "top": 270,
+      "left": 600,
+      "attrs": {
+        "color": "violet",
+        "label": "CH7 GPIO26"
+      }
+    },
+    {
+      "type": "wokwi-relay-module",
+      "id": "relay8",
+      "top": 370,
+      "left": 260,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r8",
+      "top": 390,
+      "left": 470,
+      "attrs": {
+        "value": "220"
+      }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led8",
+      "top": 360,
+      "left": 600,
+      "attrs": {
+        "color": "white",
+        "label": "CH8 GPIO27"
+      }
+    }
+  ],
+  "connections": [
+    [
+      "esp:TX",
+      "$serialMonitor:RX",
+      "",
+      []
+    ],
+    [
+      "esp:RX",
+      "$serialMonitor:TX",
+      "",
+      []
+    ],
+    [
+      "esp:23",
+      "relay1:IN",
+      "green",
+      []
+    ],
+    [
+      "esp:5V",
+      "relay1:VCC",
+      "red",
+      []
+    ],
+    [
+      "esp:GND.2",
+      "relay1:GND",
+      "black",
+      []
+    ],
+    [
+      "esp:3V3",
+      "relay1:COM",
+      "orange",
+      []
+    ],
+    [
+      "relay1:NO",
+      "r1:1",
+      "gold",
+      []
+    ],
+    [
+      "r1:2",
+      "led1:A",
+      "gold",
+      []
+    ],
+    [
+      "led1:C",
+      "esp:GND.1",
+      "black",
+      []
+    ],
+    [
+      "esp:22",
+      "relay2:IN",
+      "green",
+      []
+    ],
+    [
+      "esp:5V",
+      "relay2:VCC",
+      "red",
+      []
+    ],
+    [
+      "esp:GND.2",
+      "relay2:GND",
+      "black",
+      []
+    ],
+    [
+      "esp:3V3",
+      "relay2:COM",
+      "orange",
+      []
+    ],
+    [
+      "relay2:NO",
+      "r2:1",
+      "gold",
+      []
+    ],
+    [
+      "r2:2",
+      "led2:A",
+      "gold",
+      []
+    ],
+    [
+      "led2:C",
+      "esp:GND.1",
+      "black",
+      []
+    ],
+    [
+      "esp:21",
+      "relay3:IN",
+      "green",
+      []
+    ],
+    [
+      "esp:5V",
+      "relay3:VCC",
+      "red",
+      []
+    ],
+    [
+      "esp:GND.2",
+      "relay3:GND",
+      "black",
+      []
+    ],
+    [
+      "esp:3V3",
+      "relay3:COM",
+      "orange",
+      []
+    ],
+    [
+      "relay3:NO",
+      "r3:1",
+      "gold",
+      []
+    ],
+    [
+      "r3:2",
+      "led3:A",
+      "gold",
+      []
+    ],
+    [
+      "led3:C",
+      "esp:GND.1",
+      "black",
+      []
+    ],
+    [
+      "esp:19",
+      "relay4:IN",
+      "green",
+      []
+    ],
+    [
+      "esp:5V",
+      "relay4:VCC",
+      "red",
+      []
+    ],
+    [
+      "esp:GND.2",
+      "relay4:GND",
+      "black",
+      []
+    ],
+    [
+      "esp:3V3",
+      "relay4:COM",
+      "orange",
+      []
+    ],
+    [
+      "relay4:NO",
+      "r4:1",
+      "gold",
+      []
+    ],
+    [
+      "r4:2",
+      "led4:A",
+      "gold",
+      []
+    ],
+    [
+      "led4:C",
+      "esp:GND.1",
+      "black",
+      []
+    ],
+    [
+      "esp:18",
+      "relay5:IN",
+      "green",
+      []
+    ],
+    [
+      "esp:5V",
+      "relay5:VCC",
+      "red",
+      []
+    ],
+    [
+      "esp:GND.2",
+      "relay5:GND",
+      "black",
+      []
+    ],
+    [
+      "esp:3V3",
+      "relay5:COM",
+      "orange",
+      []
+    ],
+    [
+      "relay5:NO",
+      "r5:1",
+      "gold",
+      []
+    ],
+    [
+      "r5:2",
+      "led5:A",
+      "gold",
+      []
+    ],
+    [
+      "led5:C",
+      "esp:GND.1",
+      "black",
+      []
+    ],
+    [
+      "esp:25",
+      "relay6:IN",
+      "green",
+      []
+    ],
+    [
+      "esp:5V",
+      "relay6:VCC",
+      "red",
+      []
+    ],
+    [
+      "esp:GND.2",
+      "relay6:GND",
+      "black",
+      []
+    ],
+    [
+      "esp:3V3",
+      "relay6:COM",
+      "orange",
+      []
+    ],
+    [
+      "relay6:NO",
+      "r6:1",
+      "gold",
+      []
+    ],
+    [
+      "r6:2",
+      "led6:A",
+      "gold",
+      []
+    ],
+    [
+      "led6:C",
+      "esp:GND.1",
+      "black",
+      []
+    ],
+    [
+      "esp:26",
+      "relay7:IN",
+      "green",
+      []
+    ],
+    [
+      "esp:5V",
+      "relay7:VCC",
+      "red",
+      []
+    ],
+    [
+      "esp:GND.2",
+      "relay7:GND",
+      "black",
+      []
+    ],
+    [
+      "esp:3V3",
+      "relay7:COM",
+      "orange",
+      []
+    ],
+    [
+      "relay7:NO",
+      "r7:1",
+      "gold",
+      []
+    ],
+    [
+      "r7:2",
+      "led7:A",
+      "gold",
+      []
+    ],
+    [
+      "led7:C",
+      "esp:GND.1",
+      "black",
+      []
+    ],
+    [
+      "esp:27",
+      "relay8:IN",
+      "green",
+      []
+    ],
+    [
+      "esp:5V",
+      "relay8:VCC",
+      "red",
+      []
+    ],
+    [
+      "esp:GND.2",
+      "relay8:GND",
+      "black",
+      []
+    ],
+    [
+      "esp:3V3",
+      "relay8:COM",
+      "orange",
+      []
+    ],
+    [
+      "relay8:NO",
+      "r8:1",
+      "gold",
+      []
+    ],
+    [
+      "r8:2",
+      "led8:A",
+      "gold",
+      []
+    ],
+    [
+      "led8:C",
+      "esp:GND.1",
+      "black",
+      []
+    ]
+  ],
+  "dependencies": {}
+}

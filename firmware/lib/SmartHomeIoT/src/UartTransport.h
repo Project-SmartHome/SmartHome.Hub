@@ -16,7 +16,11 @@ public:
         : serial(uart) {}
 
     bool begin() override {
-        serial.begin(115200, SERIAL_8N1, 16, 17);
+#if defined(ESP32)
+        serial.begin(115200, SERIAL_8N1, 16, 17);  // RX=16, TX=17
+#else
+        serial.begin(115200);  // ESP8266 UART pins are fixed
+#endif
         return true;
     }
 

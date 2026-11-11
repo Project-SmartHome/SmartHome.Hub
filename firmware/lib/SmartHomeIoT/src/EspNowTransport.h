@@ -2,72 +2,62 @@
 #pragma once
 
 #include <Arduino.h>
-#include <WiFi.h>
-#include <esp_now.h>
+#include "EspNowCompat.h"
 #include "ITransport.h"
+#include "NodeRegistration.h"
 
+// Broadcast ESP-NOW transport. Works on ESP32 and ESP8266 (incl. NodeMCU).
 class EspNowTransport : public ITransport {
 private:
     ReceiveCallback callback = nullptr;
+    uint8_t channel;
 
-    static EspNowTransport* instance;
+    // Function-local static: header-only safe and C++11 compatible.
+    static EspNowTransport*& instance() {
+        static EspNowTransport* current = nullptr;
+        return current;
+    }
 
     static void receiveHandler(
         const uint8_t* mac,
         const uint8_t* data,
         int length
     ) {
-        if (instance && instance->callback) {
-            instance->callback(data, length);
+        EspNowTransport* self = instance();
+
+        if (self && self->callback && length > 0) {
+            self->callback(data, static_cast<size_t>(length));
         }
     }
 
 public:
+    static const uint8_t* broadcastMac() {
+        static const uint8_t mac[6] = {
+            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
+        };
+        return mac;
+    }
+
+    explicit EspNowTransport(uint8_t wifiChannel = SH_ESPNOW_CHANNEL)
+        : channel(wifiChannel) {}
+
     bool begin() override {
-        instance = this;
+        instance() = this;
 
-        WiFi.mode(WIFI_STA);
-
-        if (esp_now_init() != ESP_OK) {
+        if (!ShEspNow::begin(channel)) {
             return false;
         }
 
-        esp_now_register_recv_cb(receiveHandler);
+        ShEspNow::onReceive(receiveHandler);
 
-        return true;
+        return ShEspNow::addPeer(broadcastMac(), channel);
     }
 
     bool send(
         const uint8_t* data,
         size_t length
     ) override {
-        uint8_t broadcastAddress[] = {
-            0xFF, 0xFF, 0xFF,
-            0xFF, 0xFF, 0xFF
-        };
-
-        esp_now_peer_info_t peer = {};
-
-        memcpy(
-            peer.peer_addr,
-            broadcastAddress,
-            6
-        );
-
-        peer.channel = 0;
-        peer.encrypt = false;
-
-        if (!esp_now_is_peer_exist(broadcastAddress)) {
-            if (esp_now_add_peer(&peer) != ESP_OK) {
-                return false;
-            }
-        }
-
-        return esp_now_send(
-            broadcastAddress,
-            data,
-            length
-        ) == ESP_OK;
+        return ShEspNow::send(broadcastMac(), data, length);
     }
 
     void setReceiveCallback(
@@ -76,5 +66,3 @@ public:
         callback = cb;
     }
 };
-
-EspNowTransport* EspNowTransport::instance = nullptr;
