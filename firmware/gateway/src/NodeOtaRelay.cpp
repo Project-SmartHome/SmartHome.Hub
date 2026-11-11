@@ -23,6 +23,12 @@ constexpr uint32_t BACKOFF_BASE_MS = 2UL * 60UL * 1000UL;
 constexpr uint8_t BACKOFF_MAX_SHIFT = 6;               // caps at ~2 h
 constexpr uint32_t DOWNLOAD_IDLE_TIMEOUT_MS = 15000;
 
+// LittleFS logs an error for every open/remove of a missing file; these are
+// routine here (empty cache), so check first.
+void removeIfExists(const char* path) {
+    if (LittleFS.exists(path)) LittleFS.remove(path);
+}
+
 bool due(uint32_t now, uint32_t at) {
     return static_cast<int32_t>(now - at) >= 0;
 }
@@ -217,8 +223,8 @@ void NodeOtaRelay::start(NodeRecord& record, const ShOta::Release& release) {
         Serial.println("[NodeOTA] Cached image unreadable; discarding it");
         if (image) image.close();
         cache.valid = false;
-        LittleFS.remove(IMAGE_PATH);
-        LittleFS.remove(META_PATH);
+        removeIfExists(IMAGE_PATH);
+        removeIfExists(META_PATH);
         return;
     }
 
@@ -381,8 +387,8 @@ void NodeOtaRelay::sendChunk() {
         Serial.println("[NodeOTA] Cached image read failed");
         fail(OtaStatus::WriteFailed, false);
         cache.valid = false;
-        LittleFS.remove(IMAGE_PATH);
-        LittleFS.remove(META_PATH);
+        removeIfExists(IMAGE_PATH);
+        removeIfExists(META_PATH);
         return;
     }
     packet.header.length = static_cast<uint16_t>(length);
@@ -420,6 +426,7 @@ bool NodeOtaRelay::ensureFilesystem() {
 
 void NodeOtaRelay::loadCacheMeta() {
     cache = CachedImage{};
+    if (!LittleFS.exists(META_PATH) || !LittleFS.exists(IMAGE_PATH)) return;
     File meta = LittleFS.open(META_PATH, "r");
     if (!meta) return;
     JsonDocument doc;
@@ -449,8 +456,8 @@ bool NodeOtaRelay::downloadImage(const ShOta::Release& release) {
     if (cacheMatches(release)) return true;
 
     cache.valid = false;
-    LittleFS.remove(IMAGE_PATH);
-    LittleFS.remove(META_PATH);
+    removeIfExists(IMAGE_PATH);
+    removeIfExists(META_PATH);
 
     const size_t freeBytes = LittleFS.totalBytes() - LittleFS.usedBytes();
     if (release.size + 16384 > freeBytes) {
@@ -484,7 +491,9 @@ bool NodeOtaRelay::downloadImage(const ShOta::Release& release) {
     MD5Builder md5;
     md5.begin();
     WiFiClient* stream = http.getStreamPtr();
-    uint8_t buffer[1024];
+    // Static, not on the stack: this runs on the loop task right after a TLS
+    // handshake, and stack there is the scarce resource.
+    static uint8_t buffer[1024];
     uint32_t received = 0;
     uint32_t lastDataAt = millis();
     bool writeFailed = false;
@@ -517,7 +526,7 @@ bool NodeOtaRelay::downloadImage(const ShOta::Release& release) {
         Serial.printf("[NodeOTA] Download incomplete or corrupt (%u/%u bytes%s)\n",
                       static_cast<unsigned>(received), static_cast<unsigned>(release.size),
                       writeFailed ? ", flash write failed" : "");
-        LittleFS.remove(IMAGE_PATH);
+        removeIfExists(IMAGE_PATH);
         return false;
     }
 
@@ -529,7 +538,7 @@ bool NodeOtaRelay::downloadImage(const ShOta::Release& release) {
     File meta = LittleFS.open(META_PATH, "w");
     if (!meta || serializeJson(doc, meta) == 0) {
         if (meta) meta.close();
-        LittleFS.remove(IMAGE_PATH);
+        removeIfExists(IMAGE_PATH);
         return false;
     }
     meta.close();
@@ -539,7 +548,8 @@ bool NodeOtaRelay::downloadImage(const ShOta::Release& release) {
     copyText(cache.md5, sizeof(cache.md5), release.md5);
     cache.size = release.size;
     cache.valid = true;
-    Serial.printf("[NodeOTA] Cached %s %s (%u bytes)\n", release.target, release.version,
-                  static_cast<unsigned>(release.size));
+    Serial.printf("[NodeOTA] Cached %s %s (%u bytes); loop stack headroom %u bytes\n",
+                  release.target, release.version, static_cast<unsigned>(release.size),
+                  static_cast<unsigned>(uxTaskGetStackHighWaterMark(nullptr)));
     return true;
 }

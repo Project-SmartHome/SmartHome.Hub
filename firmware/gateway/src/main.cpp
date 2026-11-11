@@ -54,6 +54,12 @@ extern "C" bool verifyRollbackLater() {
     return true;
 }
 
+// The Arduino default (8 KB) is not enough: TLS certificate verification
+// for firmware downloads runs on this task, several calls deep inside the
+// node-update relay, and overflowed it ("Stack canary watchpoint triggered
+// (loopTask)"). 16 KB leaves ample headroom; see the log after downloads.
+SET_LOOP_TASK_STACK_SIZE(16 * 1024);
+
 #ifndef SH_TOPIC_ROOT
 #define SH_TOPIC_ROOT "smarthome"
 #endif

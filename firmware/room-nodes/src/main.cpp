@@ -63,6 +63,10 @@
 extern "C" bool verifyRollbackLater() {
     return true;
 }
+
+// Firmware downloads verify TLS certificates on the loop task; the 8 KB
+// Arduino default is too tight for that (it overflowed on the gateway).
+SET_LOOP_TASK_STACK_SIZE(16 * 1024);
 #endif
 
 // Wokwi's simulated access point is open and fixed to channel 6; naming the
